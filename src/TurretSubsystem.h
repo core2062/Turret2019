@@ -10,6 +10,7 @@ class TurretSubsystem :  public CORESubsystem
 {
 private:
     TalonSRX m_turret;
+    double m_startupTurretPosition;
 
 public:
     TurretSubsystem();
@@ -19,7 +20,5 @@ public:
 	void Setrotate();
 	void SetOff();
     void InitTalons();
-    double a;
 
-    
 };
