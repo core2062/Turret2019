@@ -3,6 +3,8 @@
 #include <ctre/Phoenix.h>
 #include <CORERobotLib.h>
 #include <frc/WPILib.h>
+#include <networktables/NetworkTableInstance.h>
+#include <cmath>
 
 using namespace CORE;
 
@@ -11,6 +13,7 @@ class TurretSubsystem :  public CORESubsystem
 private:
     TalonSRX m_turret;
     double m_startupTurretPosition;
+    nt::NetworkTableInstance ntinst;
 
 public:
     TurretSubsystem();
