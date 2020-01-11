@@ -20,14 +20,14 @@ void TurretSubsystem::teleopInit() {
 void TurretSubsystem::teleop() {
     double inputMotorValue = 0;
    auto table = ntinst.GetTable("COREVision");
-    int imageCenterX = 1024/2;
+   int imageCenterX = 1024/2;
     bool hasCenterX = false;
     double targetCenterX = 0;
     hasCenterX = table->GetBoolean("Has Center X", false);
     if (hasCenterX) {
         targetCenterX = table->GetNumber("Center X", -1);
         double targetCenterXOffset = targetCenterX-imageCenterX;
-        inputMotorValue =  (targetCenterXOffset/imageCenterX)*0.25;
+        inputMotorValue =  (targetCenterXOffset/imageCenterX)*0.2;
     }
     //positive is right
     // inputMotorValue = (-operatorJoystick->GetAxis(CORE::COREJoystick::JoystickAxis::LEFT_STICK_X))*0.20;
@@ -42,7 +42,9 @@ void TurretSubsystem::teleop() {
         inputMotorValue = 0;
     }
     SmartDashboard::PutNumber("Motor Value", inputMotorValue);
+    SmartDashboard::PutNumber("Largest Center X", targetCenterX);
     m_turret.Set(ControlMode::PercentOutput, inputMotorValue);
+    //  m_turret.Set(ControlMode::MotionMagic, targetCenterX);
     SmartDashboard::PutNumber("Turret position", m_turret.GetSelectedSensorPosition(0));
 }
 
