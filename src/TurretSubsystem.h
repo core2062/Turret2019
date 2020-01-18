@@ -14,6 +14,8 @@ private:
     TalonSRX m_turret;
     double m_startupTurretPosition;
     nt::NetworkTableInstance ntinst;
+    bool m_xPressed;
+    bool m_bPressed;
 
 public:
     TurretSubsystem();
