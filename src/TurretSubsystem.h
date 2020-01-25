@@ -16,6 +16,11 @@ private:
     nt::NetworkTableInstance ntinst;
     bool m_xPressed;
     bool m_bPressed;
+    int imageCenterX;
+    bool hasCenterX;
+    double targetCenterX;
+    double centerError;
+    COREConstant<double> m_KP;
 
 public:
     TurretSubsystem();

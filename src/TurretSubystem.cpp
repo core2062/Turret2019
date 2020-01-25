@@ -1,6 +1,7 @@
 #include <TurretSubsystem.h>
 #include <Robot.h>
-TurretSubsystem::TurretSubsystem(): m_turret(TURRET_PORT){
+TurretSubsystem::TurretSubsystem(): m_turret(TURRET_PORT),
+                                    m_KP("KP", 0.0005){
 std::cout << "Turret Subsystem constructer called" << std::endl;
 }
 
@@ -22,16 +23,60 @@ void TurretSubsystem::teleopInit() {
 }
 
 void TurretSubsystem::teleop() {
-    // m_turret.Set(ControlMode::MotionMagic, m_startupTurretPosition + 300);
-    //    m_turret.Set(ControlMode::PercentOutput, 0.5);
+    auto table = ntinst.GetTable("COREVision");
+    imageCenterX = 128;
+    hasCenterX = false;
+    targetCenterX = 128;
     SmartDashboard::PutNumber("Turret position", m_turret.GetSelectedSensorPosition(0));
-    if (operatorJoystick->GetButton(CORE::COREJoystick::JoystickButton::B_BUTTON)) {
-        // m_startupTurretPosition = m_turret.GetSelectedSensorPosition(0);
-        m_turret.Set(ControlMode::MotionMagic, m_startupTurretPosition + 300);
-    } else if (operatorJoystick->GetButton(CORE::COREJoystick::JoystickButton::X_BUTTON)) {
-        // m_startupTurretPosition = m_turret.GetSelectedSensorPosition(0);
-        m_turret.Set(ControlMode::MotionMagic, m_startupTurretPosition - 300);
+    hasCenterX = table->GetBoolean("Has Center X", false);
+    targetCenterX = table->GetNumber("Center X", -1);
+    //std::cout << "targetCenterX" << std::endl;
+    centerError = (((targetCenterX - imageCenterX) * 2.764));
+    centerError = m_KP.Get() * centerError;
+    // set KP to 0.0005
+    SmartDashboard::PutNumber("Center Error", centerError);
+    bool atLeftStop = ((m_turret.GetSelectedSensorPosition(0)) < (m_startupTurretPosition - 468.0));
+    bool atRightStop = ((m_turret.GetSelectedSensorPosition(0)) > (m_startupTurretPosition + 468.0));
+    SmartDashboard::PutBoolean("HasTable", hasCenterX);
+    SmartDashboard::PutBoolean("At Left Stop", atLeftStop);
+    SmartDashboard::PutBoolean("At Right Stop", atRightStop);
+    SmartDashboard::PutBoolean("X Button Pressed", operatorJoystick->GetButton(CORE::COREJoystick::JoystickButton::X_BUTTON));
+    if (hasCenterX) {
+        if (!atRightStop && centerError < 0) {
+                if (operatorJoystick->GetButton(CORE::COREJoystick::JoystickButton::X_BUTTON)) {
+                    m_turret.Set(ControlMode::PercentOutput, centerError);
+                } else {
+                    m_turret.Set(ControlMode::PercentOutput, 0.0);
+                    cout<<"Button Press"<<endl;
+                }
+        } else if (!atLeftStop && centerError > 0){
+                if (operatorJoystick->GetButton(CORE::COREJoystick::JoystickButton::X_BUTTON)) {
+                    m_turret.Set(ControlMode::PercentOutput, centerError);
+                } else {
+                    m_turret.Set(ControlMode::PercentOutput, 0.0);
+                    cout<<"Button Press"<<endl;
+                }
+        } else {
+            m_turret.Set(ControlMode::PercentOutput, 0.0);
+            cout<<"Out of range"<<endl;
+        }
+    } else {
+        m_turret.Set(ControlMode::PercentOutput, 0.0);
+        cout<<"No table"<<endl; 
     }
+    double motorValue =(-operatorJoystick->GetAxis(CORE::COREJoystick::JoystickAxis::LEFT_STICK_X))*0.20;
+    //m_turret.Set(ControlMode::PercentOutput, motorValue);
+
+    
+    // bool atLeftStop = ((m_turret.GetSelectedSensorPosition(0)) < (m_startupTurretPosition - 468.0));
+    // bool atRightStop = ((m_turret.GetSelectedSensorPosition(0)) > (m_startupTurretPosition + 468.0));
+    // if () {
+    //     // m_startupTurretPosition = m_turret.GetSelectedSensorPosition(0);
+    //     m_turret.Set(ControlMode::MotionMagic, m_startupTurretPosition + 300);
+    // } else if (operatorJoystick->GetButton(CORE::COREJoystick::JoystickButton::X_BUTTON)) {
+    //     // m_startupTurretPosition = m_turret.GetSelectedSensorPosition(0);
+    //     m_turret.Set(ControlMode::MotionMagic, m_startupTurretPosition - 300);
+    // }
     // double motorValue =(-operatorJoystick->GetAxis(CORE::COREJoystick::JoystickAxis::LEFT_STICK_X))*0.20;
     // m_turret.Set(ControlMode::PercentOutput, motorValue);
     // SmartDashboard::PutNumber("Motor Value", motorValue);
@@ -81,7 +126,7 @@ void TurretSubsystem::teleop() {
 */
 /*
 * 1. Find angle of focal width of camera Horizontal FOV: 62.2 degrees, Vertical FOV: 48.8 degrees
-* 2. Convert cameraWidthUnits to degrees 16.46302251 CU = 1 DEG
+* 2. Convert cameraWidthUnits to degrees 4.1157556 CU = 1 DEG
 * 3. Convert to encoder units (Ticks) 11.377777777777778  4096 / 360
 * 4. Make it so that if targetCenterX (in encoder units) is greater than rightStop or leftStop do nothing but if in range have turret move
 */
