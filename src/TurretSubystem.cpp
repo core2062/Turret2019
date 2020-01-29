@@ -1,7 +1,12 @@
 #include <TurretSubsystem.h>
 #include <Robot.h>
+#include <COREControl/COREPID.h>
 TurretSubsystem::TurretSubsystem(): m_turret(TURRET_PORT),
-                                    m_KP("KP", 0.0005) {
+                                    m_KP("KP", 0.0005),
+                                    m_KI("KI", 0),
+                                    m_KD("KD",0),
+                                    m_KF("KF",0), 
+                                    corePID(0, 0, 0, 0) {
     std::cout << "Turret Subsystem constructer called" << std::endl;
 }
 
@@ -11,6 +16,7 @@ void TurretSubsystem::robotInit() {
     // start NetworkTables
     ntinst = nt::NetworkTableInstance::GetDefault();
     ntinst.StartClientTeam(2062);
+
 }
 
 void TurretSubsystem::teleopInit() {
@@ -18,16 +24,17 @@ void TurretSubsystem::teleopInit() {
 }
 
 void TurretSubsystem::teleop() {
-    auto table = ntinst.GetTable("COREVision");
-    int imageCenterX = 128;
-    bool hasCenterX = table->GetBoolean("Has Center X", false);
-    double targetCenterX = table->GetNumber("Center X", -1);
-    double centerError = (targetCenterX - imageCenterX) * 2.764 * m_KP.Get();
-    bool atLeftStop = ((m_turret.GetSelectedSensorPosition(0)) < (m_startupTurretPosition - 468.0));
-    bool atRightStop = ((m_turret.GetSelectedSensorPosition(0)) > (m_startupTurretPosition + 468.0));
+    auto table = ntinst.GetTable("limelight");
+    bool hasCenterX = table->GetNumber("tv", 0.0) == 1;
+    double conversion = 4096 / -360; // convert degrees to ticks
+    // calculate center error as a percent output for the motor
+    double centerError = table->GetNumber("tx", 0.0) * conversion;
+    double motorPercent = corePID.Calculate(centerError);
+    bool atLeftStop = m_turret.GetSelectedSensorPosition(0) < (m_startupTurretPosition - 468.0);
+    bool atRightStop = m_turret.GetSelectedSensorPosition(0) > (m_startupTurretPosition + 468.0);
     bool xButtonPressed = operatorJoystick->GetButton(CORE::COREJoystick::JoystickButton::X_BUTTON);
     if (hasCenterX && xButtonPressed && ((!atRightStop && centerError < 0) || (!atLeftStop && centerError > 0))) {
-        SetTurret(centerError);
+        SetTurret(motorPercent);
     } else {
         SetTurret(0.0);
     }
